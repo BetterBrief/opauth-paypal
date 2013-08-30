@@ -31,6 +31,10 @@ class PayPalStrategy extends OpauthStrategy{
 		 * @config boolean If true, use the PayPal sandbox
 		 */
 		'sandbox' => false,
+		/**
+		 * @config string The scopes to ask for separated by spaces
+		 */
+		'scope' => 'openid email profile',
 	);
 
 	/**
@@ -97,7 +101,6 @@ class PayPalStrategy extends OpauthStrategy{
 		$params = array(
 			'client_id' => $this->strategy['app_id'],
 			'response_type' => 'code',
-			'scope' => 'openid',
 			'nonce' => time() + base64_encode(rand(0x00, 0xff)),
 			'redirect_uri' => $this->strategy['redirect_uri'],
 		);
