@@ -1,23 +1,23 @@
-Opauth-Facebook
+Opauth-PayPal
 =============
-[Opauth][1] strategy for Facebook authentication.
+[Opauth][1] strategy for PayPal authentication.
 
-Implemented based on https://www.x.com/developers/paypal/documentation-tools/quick-start-guides/oauth-integration-paypal-access-getting
+Implemented based on @uzyn's initial repository and updated to work with the new PayPal API.
 
 Getting started
 ----------------
-1. Install Opauth-Paypal:
+1. Install Opauth-PayPal:
    ```bash
    cd path_to_opauth/Strategy
-   git clone https://github.com/24hours/opauth-paypal.git PayPal
+   git clone https://github.com/BetterBrief/opauth-paypal.git PayPal
    ```
 
-2. Create Paypal application at https://devportal.x.com/
-   - Select [Paypal Access] on API Scope
+2. Create PayPal application at https://devportal.x.com/
+   - Select [PayPal Access] on API Scope
    - Select [OAuth 2.0 / Open Id Connect] on Protocols
    - set the value of "Return URL" to http://path_to_opauth/paypal/int_callback
 
-3. Configure Opauth-Paypal strategy with at least `App ID` and `App Secret`.
+3. Configure Opauth-PayPal strategy with at least `App ID` and `App Secret`.
 
 4. Direct user to `http://path_to_opauth/paypal` to authenticate
 
@@ -34,7 +34,7 @@ Required parameters:
 )
 ```
 
-The list of permission are available on Attribute Level when registering application.
+The list of permissions are available on Attribute Level when registering application.
 
 License
 ---------
