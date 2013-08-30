@@ -1,16 +1,19 @@
 <?php
 /**
- * Facebook strategy for Opauth
- * based on https://www.x.com/developers/paypal/documentation-tools/quick-start-guides/oauth-integration-paypal-access-getting-page-2
+ * PayPal strategy for Opauth
  * 
  * More information on Opauth: http://opauth.org
  * 
- * @copyright    Copyright © 2012 U-Zyn Chua (http://uzyn.com)
+ * @copyright    Original © 2012 U-Zyn Chua (http://uzyn.com)
+ * @copyright    Modified © 2013 Will Morgan (https://github.com/willmorgan)
  * @link         http://opauth.org
- * @package      Opauth.PaypalStrategy
+ * @package      Opauth.PayPalStrategy
  * @license      MIT License
+ *
+ * @author       U-Zyn Chua <@uzyn>
+ * @author       Will Morgan <@willmorgan>
  */
-class PaypalStrategy extends OpauthStrategy{
+class PayPalStrategy extends OpauthStrategy{
 	
 	/**
 	 * Compulsory config keys, listed as unassociative arrays
@@ -23,19 +26,24 @@ class PaypalStrategy extends OpauthStrategy{
 	 * eg. array('scope' => 'email');
 	 */
 	public $defaults = array(
-		'redirect_uri' => '{complete_url_to_strategy}int_callback'
+		'redirect_uri' => '{complete_url_to_strategy}int_callback',
+		/**
+		 * @config boolean If true, use the PayPal sandbox
+		 */
+		'sandbox' => false,
 	);
 
 	/**
 	 * Auth request
 	 */
 	public function request(){
-		$url = 'https://identity.x.com/xidentity/resources/authorize';
+		$url = 'https://www.sandbox.paypal.com/webapps/auth/protocol/openidconnect/v1/authorize';
 		$params = array(
 			'client_id' => $this->strategy['app_id'],
+			'response_type' => 'code',
+			'scope' => 'openid',
+			'nonce' => time() + base64_encode(rand(0x00, 0xff)),
 			'redirect_uri' => $this->strategy['redirect_uri'],
-			'scope' => 'https://identity.x.com/xidentity/resources/profile/me',
-			'response_type' => 'code'
 		);
 		if (!empty($this->strategy['scope'])) $params['scope'] = $this->strategy['scope'];
 		if (!empty($this->strategy['state'])) $params['state'] = $this->strategy['state'];
@@ -45,11 +53,11 @@ class PaypalStrategy extends OpauthStrategy{
 	}
 	
 	/**
-	 * Internal callback, after Paypal's OAuth
+	 * Internal callback, after PayPal's OAuth
 	 */
 	public function int_callback(){
 		if (array_key_exists('code', $_GET) && !empty($_GET['code'])){
-			$url = 'https://identity.x.com/xidentity/oauthtokenservice';
+			$url = 'https://api.sandbox.paypal.com/v1/identity/openidconnect/tokenservice';
 			$params = array(
 				'client_id' =>$this->strategy['app_id'],
 				'client_secret' => $this->strategy['app_secret'],
@@ -64,8 +72,8 @@ class PaypalStrategy extends OpauthStrategy{
 
 				$me = $this->me($results['access_token']);
 				$this->auth = array(
-					'provider' => 'Paypal',
-					'uid' => $me['identity']['userId'],
+					'provider' => 'PayPal',
+					'uid' => $me['user_id'],
 					'info' => array(),
 					'credentials' => array(
 						'token' => $results['access_token'],
@@ -73,17 +81,11 @@ class PaypalStrategy extends OpauthStrategy{
 					),
 					'raw' => $me
 				);
-				
-				/**
-				 * TODO
-				 * - I am unable to query any user detail from profile/me
-				 */
-				
 				$this->callback();
 			}
 			else{
 				$error = array(
-					'provider' => 'Paypal',
+					'provider' => 'PayPal',
 					'code' => 'access_token_error',
 					'message' => 'Failed when attempting to obtain access token',
 					'raw' => $headers
@@ -94,7 +96,7 @@ class PaypalStrategy extends OpauthStrategy{
 		}
 		else{
 			$error = array(
-				'provider' => 'Paypal',
+				'provider' => 'PayPal',
 				'code' => $_GET['error'],
 				'message' => $_GET['error_description'],
 				'raw' => $_GET
@@ -111,7 +113,21 @@ class PaypalStrategy extends OpauthStrategy{
 	 * @return array Parsed JSON results
 	 */
 	private function me($access_token){
-		$me = $this->serverGet('https://identity.x.com/xidentity/resources/profile/me', array('oauth_token' => $access_token), null, $headers);
+		$url = 'https://api.sandbox.paypal.com/v1/identity/openidconnect/userinfo';
+		$data = array(
+			'schema' => 'openid',
+		);
+		$headers = array(
+			'Authorization: Bearer ' . $access_token,
+			'Accept: application/json',
+			'Content-Type: application/json',
+		);
+		$options = array(
+			'http' => array(
+				'header' => implode("\r\n", $headers),
+			),
+		);
+		$me = $this->serverGet($url, $data, $options, $headers);
 		if (!empty($me)){
 			return json_decode($me, true);
 		}
