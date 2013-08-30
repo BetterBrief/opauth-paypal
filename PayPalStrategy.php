@@ -34,10 +34,66 @@ class PayPalStrategy extends OpauthStrategy{
 	);
 
 	/**
+	 * CLIENT BROWSER facing URL
+	 * @return string the URL to redirect the client to to start OAuth
+	 */
+	public function getClientAuthURL() {
+		$domain = 'www.paypal.com';
+		if($this->isSandboxMode()) {
+			$domain = 'www.sandbox.paypal.com';
+		}
+		return sprintf(
+			'https://%s/webapps/auth/protocol/openidconnect/v1/authorize',
+			$domain
+		);
+	}
+
+	/**
+	 * SERVER facing URL
+	 * @return string the URL to obtain an OAuth access_token from
+	 */
+	public function getTokenServiceURL() {
+		$domain = 'api.paypal.com';
+		if($this->isSandboxMode()) {
+			$domain = 'api.sandbox.paypal.com';
+		}
+		return sprintf(
+			'https://%s/v1/identity/openidconnect/tokenservice',
+			$domain
+		);
+	}
+
+	/**
+	 * SERVER facing URL
+	 * @return string the URL to get the user's OpenID info from
+	 */
+	public function getUserInfoURL() {
+		$domain = 'api.paypal.com';
+		if($this->isSandboxMode()) {
+			$domain = 'api.sandbox.paypal.com';
+		}
+		return sprintf(
+			'https://%s/v1/identity/openidconnect/userinfo',
+			$domain
+		);
+	}
+
+	/**
+	 * @return boolean If we're in sandbox mode
+	 */
+	public function isSandboxMode() {
+		return !empty($this->strategy['sandbox']);
+	}
+
+	/**
 	 * Auth request
+	 * Redirects the client to the authorise page where they are asked to enter
+	 * their credentials and accept the information that this application asks
+	 * for.
+	 * @return void
 	 */
 	public function request(){
-		$url = 'https://www.sandbox.paypal.com/webapps/auth/protocol/openidconnect/v1/authorize';
+		$url = $this->getClientAuthURL();
 		$params = array(
 			'client_id' => $this->strategy['app_id'],
 			'response_type' => 'code',
@@ -54,10 +110,13 @@ class PayPalStrategy extends OpauthStrategy{
 	
 	/**
 	 * Internal callback, after PayPal's OAuth
+	 * After the user accepts the terms on the client authentication page
+	 * (see ->request), we are returned a code that is used to exchange for an
+	 * access_token. This code can be used only once.
 	 */
 	public function int_callback(){
 		if (array_key_exists('code', $_GET) && !empty($_GET['code'])){
-			$url = 'https://api.sandbox.paypal.com/v1/identity/openidconnect/tokenservice';
+			$url = $this->getTokenServiceURL();
 			$params = array(
 				'client_id' =>$this->strategy['app_id'],
 				'client_secret' => $this->strategy['app_secret'],
@@ -107,13 +166,14 @@ class PayPalStrategy extends OpauthStrategy{
 	}
 	
 	/**
-	 * Queries PayPal Identity.x for user info
+	 * Queries PayPal's Identity resource for OpenID user info.
+	 * At this point, the server must hold a valid access_token.
 	 *
 	 * @param string $access_token 
-	 * @return array Parsed JSON results
+	 * @return array Parsed JSON results in OpenID format
 	 */
-	private function me($access_token){
-		$url = 'https://api.sandbox.paypal.com/v1/identity/openidconnect/userinfo';
+	protected function me($access_token){
+		$url = $this->getUserInfoURL();
 		$data = array(
 			'schema' => 'openid',
 		);
