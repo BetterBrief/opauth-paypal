@@ -139,8 +139,9 @@ class PayPalStrategy extends OpauthStrategy{
 					'info' => array(),
 					'credentials' => array(
 						'token' => $results['access_token'],
-						'expires' => date('c', time() + $results['expires'])
+						'expires' => date('c', time() + $results['expires_in'])
 					),
+					'token' => $results,
 					'raw' => $me
 				);
 				$this->callback();
