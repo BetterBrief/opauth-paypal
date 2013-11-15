@@ -59,10 +59,10 @@ class PayPalStrategy extends OpauthStrategy{
 	public function getTokenServiceURL() {
 		$domain = 'api.paypal.com';
 		if($this->isSandboxMode()) {
-			$domain = 'api.sandbox.paypal.com';
+			$domain = 'www.sandbox.paypal.com';
 		}
 		return sprintf(
-			'https://%s/v1/identity/openidconnect/tokenservice',
+			'https://%s/webapps/auth/protocol/openidconnect/v1/tokenservice',
 			$domain
 		);
 	}
